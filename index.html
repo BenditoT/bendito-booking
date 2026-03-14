@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bendito Tango Marathon 2026 – Live Buchungsübersicht</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; }
+
+  .header {
+    background: linear-gradient(135deg, #16213e 0%, #0f3460 50%, #533483 100%);
+    padding: 24px 40px; text-align: center;
+    border-bottom: 3px solid #e94560;
+  }
+  .header h1 { font-size: 1.8em; color: #fff; margin-bottom: 4px; letter-spacing: 1px; }
+  .header p { color: #aaa; font-size: 0.9em; }
+  .header .live-badge {
+    display: inline-block; background: #4ecca3; color: #000; padding: 2px 12px;
+    border-radius: 12px; font-size: 0.75em; font-weight: 700; margin-left: 10px;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+  .refresh-bar {
+    background: #16213e; padding: 8px 20px; display: flex;
+    justify-content: space-between; align-items: center; border-bottom: 1px solid #222;
+    font-size: 0.8em; color: #555;
+  }
+  .refresh-bar button {
+    background: #0f3460; color: #aaa; border: 1px solid #333; padding: 5px 14px;
+    border-radius: 6px; cursor: pointer; font-size: 0.85em;
+  }
+  .refresh-bar button:hover { background: #e94560; color: #fff; border-color: #e94560; }
+
+  .nav {
+    display: flex; justify-content: center; gap: 8px;
+    padding: 12px; background: #16213e; flex-wrap: wrap;
+    border-bottom: 1px solid #333;
+  }
+  .nav button {
+    padding: 8px 18px; border: 2px solid #0f3460; background: transparent;
+    color: #aaa; border-radius: 25px; cursor: pointer; font-size: 0.85em;
+    transition: all 0.3s;
+  }
+  .nav button:hover { border-color: #e94560; color: #fff; }
+  .nav button.active { background: #e94560; border-color: #e94560; color: #fff; }
+
+  .content { padding: 25px; max-width: 1400px; margin: 0 auto; }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  .loading {
+    text-align: center; padding: 80px; color: #666; font-size: 1.1em;
+  }
+  .loading .spinner {
+    width: 40px; height: 40px; border: 3px solid #333; border-top-color: #e94560;
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+    margin: 0 auto 20px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error { text-align: center; padding: 60px; color: #e94560; }
+
+  /* Stats Cards */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px; margin-bottom: 25px;
+  }
+  .stat-card {
+    background: linear-gradient(135deg, #16213e, #1a1a3e);
+    border: 1px solid #333; border-radius: 12px; padding: 18px; text-align: center;
+  }
+  .stat-card .number { font-size: 2em; font-weight: 700; color: #e94560; }
+  .stat-card .label { color: #888; font-size: 0.8em; margin-top: 4px; }
+  .stat-card.green .number { color: #4ecca3; }
+  .stat-card.blue .number { color: #6c9bff; }
+  .stat-card.orange .number { color: #f0a500; }
+
+  /* Type bars */
+  .type-bars { max-width: 700px; }
+  .type-bar-row { margin: 8px 0; }
+  .type-bar-label { font-size: 0.82em; color: #aaa; margin-bottom: 3px; }
+  .type-bar-track {
+    height: 26px; background: #1a1a2e; border-radius: 6px;
+    display: flex; overflow: hidden;
+  }
+  .type-bar-segment {
+    height: 100%; display: flex; align-items: center; justify-content: center;
+    font-size: 0.7em; font-weight: 600; color: #fff; min-width: 18px;
+  }
+  .type-bar-segment.occ { background: #e94560; }
+  .type-bar-segment.free { background: #4ecca3; }
+  .type-bar-segment.blk { background: #444; }
+
+  /* Floor plan */
+  .legend {
+    display: flex; gap: 15px; margin: 12px 0; flex-wrap: wrap;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.8em; color: #aaa; }
+  .legend-dot { width: 14px; height: 14px; border-radius: 4px; }
+
+  .floor-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(82px, 1fr));
+    gap: 6px; margin-top: 10px;
+  }
+  .floor-room {
+    aspect-ratio: 1; border-radius: 8px; display: flex;
+    flex-direction: column; align-items: center; justify-content: center;
+    font-size: 0.7em; cursor: default; transition: transform 0.2s;
+    position: relative;
+  }
+  .floor-room:hover { transform: scale(1.12); z-index: 2; }
+  .floor-room .fnr { font-weight: 700; font-size: 1.3em; }
+  .floor-room .ftype { font-size: 0.8em; opacity: 0.8; }
+  .floor-room .fbeds { font-size: 0.75em; opacity: 0.7; }
+  .floor-room.f-occupied { background: linear-gradient(135deg, #c0392b, #e94560); color: #fff; }
+  .floor-room.f-free { background: linear-gradient(135deg, #27ae60, #4ecca3); color: #fff; }
+  .floor-room.f-blocked { background: #333; color: #666; }
+  .floor-room.f-partial { background: linear-gradient(135deg, #d4a017, #f0a500); color: #fff; }
+  .floor-room.f-orga { background: linear-gradient(135deg, #533483, #8e44ad); color: #fff; }
+
+  .tooltip {
+    display: none; position: absolute; bottom: 105%; left: 50%;
+    transform: translateX(-50%); background: #16213e; border: 1px solid #e94560;
+    border-radius: 8px; padding: 8px 12px; white-space: nowrap;
+    font-size: 0.85em; z-index: 10; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    text-align: left;
+  }
+  .floor-room:hover .tooltip { display: block; }
+
+  /* Room Grid */
+  .room-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+  }
+  .room-card {
+    background: #16213e; border: 1px solid #333; border-radius: 10px;
+    padding: 14px; transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .room-card:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(233,69,96,0.2); }
+  .room-card.occupied { border-left: 4px solid #e94560; }
+  .room-card.free { border-left: 4px solid #4ecca3; }
+  .room-card.blocked { border-left: 4px solid #555; opacity: 0.6; }
+  .room-card.partial { border-left: 4px solid #f0a500; }
+
+  .room-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 8px;
+  }
+  .room-nr {
+    background: #0f3460; color: #fff; width: 34px; height: 34px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.85em;
+  }
+  .room-type {
+    font-size: 0.72em; color: #888; background: #1a1a2e; padding: 3px 10px;
+    border-radius: 12px;
+  }
+  .room-price { color: #f0a500; font-size: 0.82em; font-weight: 600; }
+
+  .bed-list { list-style: none; }
+  .bed-list li {
+    padding: 3px 8px; margin: 2px 0; border-radius: 6px; font-size: 0.82em;
+  }
+  .bed-list li.occupied { background: rgba(233,69,96,0.15); color: #ff7b93; }
+  .bed-list li.free { background: rgba(78,204,163,0.15); color: #4ecca3; }
+  .bed-list li.blocked { background: rgba(100,100,100,0.15); color: #666; }
+
+  /* Tables */
+  .data-table {
+    width: 100%; border-collapse: collapse; background: #16213e;
+    border-radius: 10px; overflow: hidden;
+  }
+  .data-table th {
+    background: #0f3460; padding: 10px 14px; text-align: left;
+    color: #aaa; font-size: 0.78em; text-transform: uppercase; letter-spacing: 1px;
+  }
+  .data-table td {
+    padding: 9px 14px; border-bottom: 1px solid #1a1a2e; font-size: 0.85em;
+  }
+  .data-table tr:hover td { background: rgba(233,69,96,0.08); }
+
+  .room-badge {
+    background: #0f3460; padding: 3px 10px; border-radius: 12px;
+    font-size: 0.8em; display: inline-block;
+  }
+  .badge {
+    padding: 3px 10px; border-radius: 12px; font-size: 0.75em;
+    display: inline-block; font-weight: 600;
+  }
+  .badge.paid { background: rgba(78,204,163,0.2); color: #4ecca3; }
+  .badge.open { background: rgba(240,165,0,0.2); color: #f0a500; }
+  .badge.canceled { background: rgba(100,100,100,0.2); color: #666; text-decoration: line-through; }
+
+  .search-box {
+    width: 100%; max-width: 400px; padding: 9px 14px;
+    background: #16213e; border: 1px solid #333; border-radius: 8px;
+    color: #eee; font-size: 0.88em; margin-bottom: 18px;
+  }
+  .search-box:focus { outline: none; border-color: #e94560; }
+
+  .section-title {
+    color: #aaa; margin-bottom: 12px; font-size: 0.85em;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+
+  @media (max-width: 600px) {
+    .header h1 { font-size: 1.2em; }
+    .content { padding: 12px; }
+    .floor-grid { grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Bendito Tango Marathon 2026 <span class="live-badge">LIVE</span></h1>
+  <p>Zimmer- & Buchungsübersicht – Pielenhofen bei Regensburg</p>
+</div>
+
+<div class="refresh-bar">
+  <span id="lastUpdate">Wird geladen...</span>
+  <button onclick="loadData()">↻ Aktualisieren</button>
+</div>
+
+<div class="nav">
+  <button class="active" onclick="showView('dashboard', this)">Dashboard</button>
+  <button onclick="showView('floorplan', this)">Zimmerplan</button>
+  <button onclick="showView('rooms', this)">Zimmerliste</button>
+  <button onclick="showView('names', this)">Namensliste</button>
+  <button onclick="showView('bookings', this)">Buchungen</button>
+</div>
+
+<div class="content">
+  <div id="loadingIndicator" class="loading">
+    <div class="spinner"></div>
+    Daten werden aus Google Sheet geladen...
+  </div>
+  <div id="errorIndicator" class="error" style="display:none"></div>
+
+  <div id="dashboard" class="view">
+    <div class="stats-grid" id="statsGrid"></div>
+    <h3 class="section-title">Belegung nach Zimmertyp</h3>
+    <div class="type-bars" id="typeBars"></div>
+  </div>
+
+  <div id="floorplan" class="view">
+    <h3 class="section-title">Zimmerplan – Visuelle Übersicht</h3>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#e94560;"></div> Belegt</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#4ecca3;"></div> Frei</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f0a500;"></div> Teilweise belegt</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#8e44ad;"></div> Orga</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#333;"></div> Gesperrt</div>
+    </div>
+    <div class="floor-grid" id="floorGrid"></div>
+  </div>
+
+  <div id="rooms" class="view">
+    <input type="text" class="search-box" placeholder="Zimmer durchsuchen (Name, Typ, Nummer)..." oninput="renderRoomCards(this.value)">
+    <div class="room-grid" id="roomGrid"></div>
+  </div>
+
+  <div id="names" class="view">
+    <input type="text" class="search-box" placeholder="Name suchen..." oninput="renderNameTable(this.value)">
+    <table class="data-table" id="nameTable">
+      <thead><tr><th>Name</th><th>Zimmer</th><th>Zimmertyp</th><th>Preis/Nacht</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div id="bookings" class="view">
+    <table class="data-table">
+      <thead><tr><th>#</th><th>Personen</th><th>Zimmer</th><th>Stadt</th><th>Status</th><th>Betrag</th><th>E-Mail</th></tr></thead>
+      <tbody id="bookingBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/charts/loader.js"></script>
+<script>
+// ===== CONFIG =====
+const SHEET_ID = '1JextgitU-5nk9jfEhIHO-bFJHn-JXC3lGiuQNjHIs_8';
+const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}`;
+
+const TYPE_LABELS = {
+  'double': 'Doppelzimmer (Paar)', 'dbedwoman': 'Doppelzimmer (Frauen)',
+  'dbedman': 'Doppelzimmer (Männer)', 'single': 'Einzelzimmer',
+  'triple': 'Dreibettzimmer', 'sixwoman': '6-Bett (Frauen)',
+  'sixman': '6-Bett (Männer)', 'loud': 'DZ (nah am Geschehen)',
+  'doublecouple': '4-Bett (2 Paare)', 'dorm': 'Schlafsaal', '': 'Sonstig'
+};
+const TYPE_SHORT = {
+  'double':'DZ','dbedwoman':'DZ♀','dbedman':'DZ♂','single':'EZ',
+  'triple':'3er','sixwoman':'6♀','sixman':'6♂','loud':'DZ!',
+  'doublecouple':'4er','dorm':'Saal','':'—'
+};
+const TYPE_ORDER = ['double','loud','single','triple','doublecouple','dbedwoman','dbedman','sixwoman','sixman','dorm'];
+
+// ===== STATE =====
+let allRooms = [];
+let allBookings = [];
+let nameMap = [];
+
+// ===== GOOGLE SHEETS FETCH (via Google Visualization API – no CORS issues) =====
+function fetchSheet(sheetName) {
+  return new Promise((resolve, reject) => {
+    const url = `${SHEET_URL}/gviz/tq?sheet=${encodeURIComponent(sheetName)}`;
+    const query = new google.visualization.Query(url);
+    query.send(response => {
+      if (response.isError()) {
+        reject(new Error(response.getMessage()));
+        return;
+      }
+      const dataTable = response.getDataTable();
+      // Convert Google DataTable to our simple format
+      const numCols = dataTable.getNumberOfColumns();
+      const numRows = dataTable.getNumberOfRows();
+      const rows = [];
+      for (let r = 0; r < numRows; r++) {
+        const cells = [];
+        for (let c = 0; c < numCols; c++) {
+          const val = dataTable.getValue(r, c);
+          cells.push(val !== null && val !== undefined ? { v: val } : null);
+        }
+        rows.push({ c: cells });
+      }
+      resolve({ rows, cols: numCols });
+    });
+  });
+}
+
+function parseCell(cell) {
+  if (!cell) return null;
+  if (cell.v === null || cell.v === undefined) return null;
+  return cell.v;
+}
+
+// ===== DATA PARSING =====
+function parseRooms(table) {
+  const rooms = [];
+  // Google Visualization API already skips the header row
+  for (let i = 0; i < table.rows.length; i++) {
+    const row = table.rows[i];
+    const cells = row.c;
+    const nr = parseCell(cells[0]);
+    if (nr === null) continue;
+
+    const bed_count = parseCell(cells[1]) || 0;
+    const type = parseCell(cells[2]) || '';
+    const price = parseCell(cells[3]) || 0;
+    const wholeRoom = parseCell(cells[4]);
+
+    // Beds are in columns F onwards (index 5+)
+    const beds = [];
+    for (let b = 0; b < bed_count; b++) {
+      const idx = 5 + b;
+      if (idx < cells.length) {
+        const val = parseCell(cells[idx]);
+        beds.push(val !== null ? String(val) : 'free');
+      } else {
+        beds.push('free');
+      }
+    }
+
+    rooms.push({
+      nr: Math.round(nr), bed_count: Math.round(bed_count),
+      type, price, wholeRoom: !!wholeRoom, beds
+    });
+  }
+  return rooms;
+}
+
+function parseBookings(table) {
+  const bookings = [];
+  for (let i = 0; i < table.rows.length; i++) {
+    const row = table.rows[i];
+    const cells = row.c;
+    const id = parseCell(cells[0]);
+    if (id === null) continue;
+
+    const status = parseCell(cells[1]) || '';
+    const paid = !!parseCell(cells[3]);
+    const paydate = parseCell(cells[4]) || '';
+    const firstnamesRaw = parseCell(cells[5]) || '';
+    const lastnamesRaw = parseCell(cells[7]) || '';
+    const room = parseCell(cells[8]);
+    const city = parseCell(cells[10]) || '';
+    const country = parseCell(cells[11]) || '';
+    const email = parseCell(cells[12]) || '';
+    const price = parseCell(cells[13]) || 0;
+    const wishes = parseCell(cells[14]) || '';
+    const canceled = !!parseCell(cells[17]);
+
+    const firstnames = String(firstnamesRaw).split('\n').map(s => s.trim()).filter(Boolean);
+    const lastnames = String(lastnamesRaw).split('\n').map(s => s.trim()).filter(Boolean);
+    const people = [];
+    const len = Math.max(firstnames.length, lastnames.length);
+    for (let p = 0; p < len; p++) {
+      const fn = p < firstnames.length ? firstnames[p] : '';
+      const ln = p < lastnames.length ? lastnames[p] : '';
+      people.push((fn + ' ' + ln).trim());
+    }
+
+    bookings.push({
+      id: Math.round(id), status, paid, paydate, people,
+      room: room ? Math.round(room) : null,
+      city, country, email, price, wishes, canceled
+    });
+  }
+  return bookings;
+}
+
+// ===== RESOLVE BED OCCUPANTS =====
+// A bed value can be: "free", "blocked"/"block", a name (string), a booking ID (number),
+// or "xxxx" (reserved/blocked)
+function resolveBed(bedVal, bookingsMap) {
+  if (bedVal === 'free') return { status: 'free', label: '— frei —' };
+  if (bedVal === 'blocked' || bedVal === 'block' || bedVal === 'xxxx')
+    return { status: 'blocked', label: 'gesperrt' };
+
+  // Check if it's a number (booking ID reference)
+  const numVal = Number(bedVal);
+  if (!isNaN(numVal) && numVal > 0) {
+    const booking = bookingsMap[Math.round(numVal)];
+    if (booking && !booking.canceled) {
+      return { status: 'occupied', label: booking.people.join(', '), bookingId: booking.id, booking };
+    }
+    // Booking ID not found or canceled
+    return { status: 'blocked', label: `Buchung #${Math.round(numVal)}` };
+  }
+
+  // It's a name string
+  return { status: 'occupied', label: bedVal };
+}
+
+// ===== BUILD DATA =====
+function processData() {
+  const bookingsMap = {};
+  for (const b of allBookings) {
+    if (!b.canceled) bookingsMap[b.id] = b;
+  }
+
+  // Resolve all beds and build name map
+  const names = [];
+  const seen = new Set();
+
+  for (const room of allRooms) {
+    room.resolvedBeds = room.beds.map(b => resolveBed(b, bookingsMap));
+
+    // Build name-to-room mapping
+    for (const rb of room.resolvedBeds) {
+      if (rb.status === 'occupied') {
+        // Split label by comma in case multiple people
+        const people = rb.label.split(', ');
+        for (const name of people) {
+          const key = name + '|' + room.nr;
+          if (!seen.has(key)) {
+            seen.add(key);
+            names.push({
+              name, room_nr: room.nr,
+              room_type: TYPE_LABELS[room.type] || room.type,
+              price: room.price
+            });
+          }
+        }
+      }
+    }
+  }
+
+  names.sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  nameMap = names;
+}
+
+// ===== RENDER FUNCTIONS =====
+function renderStats() {
+  let totalBeds = 0, freeBeds = 0, occupiedBeds = 0, blockedBeds = 0;
+  for (const room of allRooms) {
+    if (!room.type && room.bed_count === 0) continue;
+    for (const rb of room.resolvedBeds) {
+      totalBeds++;
+      if (rb.status === 'free') freeBeds++;
+      else if (rb.status === 'blocked') blockedBeds++;
+      else occupiedBeds++;
+    }
+  }
+
+  const active = allBookings.filter(b => !b.canceled);
+  const paidB = active.filter(b => b.paid);
+  const openB = active.filter(b => !b.paid);
+  const totalRev = active.reduce((s, b) => s + b.price, 0);
+  const paidRev = paidB.reduce((s, b) => s + b.price, 0);
+
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card"><div class="number">${totalBeds}</div><div class="label">Betten gesamt</div></div>
+    <div class="stat-card green"><div class="number">${freeBeds}</div><div class="label">Frei</div></div>
+    <div class="stat-card"><div class="number">${occupiedBeds}</div><div class="label">Belegt</div></div>
+    <div class="stat-card" style="opacity:0.6"><div class="number" style="color:#666">${blockedBeds}</div><div class="label">Gesperrt</div></div>
+    <div class="stat-card blue"><div class="number">${active.length}</div><div class="label">Buchungen</div></div>
+    <div class="stat-card green"><div class="number">${paidB.length}</div><div class="label">Bezahlt</div></div>
+    <div class="stat-card orange"><div class="number">${openB.length}</div><div class="label">Offen</div></div>
+    <div class="stat-card blue"><div class="number">${totalRev.toFixed(0)}€</div><div class="label">Umsatz gesamt</div></div>
+    <div class="stat-card green"><div class="number">${paidRev.toFixed(0)}€</div><div class="label">Davon bezahlt</div></div>
+  `;
+}
+
+function renderTypeBars() {
+  const stats = {};
+  for (const room of allRooms) {
+    const t = room.type;
+    if (!t) continue;
+    if (!stats[t]) stats[t] = { total: 0, occupied: 0, free: 0, blocked: 0 };
+    for (const rb of room.resolvedBeds) {
+      stats[t].total++;
+      if (rb.status === 'free') stats[t].free++;
+      else if (rb.status === 'blocked') stats[t].blocked++;
+      else stats[t].occupied++;
+    }
+  }
+
+  let html = '';
+  for (const t of TYPE_ORDER) {
+    const s = stats[t];
+    if (!s || s.total === 0) continue;
+    const label = TYPE_LABELS[t] || t;
+    html += `<div class="type-bar-row">
+      <div class="type-bar-label">${label} (${s.occupied}/${s.total} belegt)</div>
+      <div class="type-bar-track">`;
+    if (s.occupied > 0) html += `<div class="type-bar-segment occ" style="width:${s.occupied/s.total*100}%">${s.occupied}</div>`;
+    if (s.free > 0) html += `<div class="type-bar-segment free" style="width:${s.free/s.total*100}%">${s.free}</div>`;
+    if (s.blocked > 0) html += `<div class="type-bar-segment blk" style="width:${s.blocked/s.total*100}%">${s.blocked}</div>`;
+    html += `</div></div>`;
+  }
+  document.getElementById('typeBars').innerHTML = html;
+}
+
+function renderFloorPlan() {
+  let html = '';
+  for (const r of allRooms) {
+    if (!r.type && r.bed_count === 0) continue;
+    const rbs = r.resolvedBeds;
+    const allFree = rbs.every(b => b.status === 'free');
+    const allBlocked = rbs.every(b => b.status === 'blocked');
+    const hasOcc = rbs.some(b => b.status === 'occupied');
+    const hasFree = rbs.some(b => b.status === 'free');
+
+    // Special: room 17 = Orga (Norbert & Ines)
+    const isOrga = r.nr === 17 || (r.bed_count === 0 && !r.type);
+
+    let cls = 'f-free';
+    if (isOrga) cls = 'f-orga';
+    else if (allBlocked) cls = 'f-blocked';
+    else if (hasOcc && hasFree) cls = 'f-partial';
+    else if (hasOcc) cls = 'f-occupied';
+
+    const ts = TYPE_SHORT[r.type] || r.type || '—';
+    const occupants = rbs.filter(b => b.status === 'occupied').map(b => b.label);
+    const freeCount = rbs.filter(b => b.status === 'free').length;
+
+    let tooltipLines = [];
+    if (occupants.length > 0) tooltipLines.push(occupants.join('<br>'));
+    if (freeCount > 0) tooltipLines.push(`<span style="color:#4ecca3">${freeCount} frei</span>`);
+    if (allBlocked) tooltipLines.push('Gesperrt');
+    if (isOrga) tooltipLines.push('Orga');
+    const tooltipContent = tooltipLines.join('<br>') || '—';
+
+    html += `<div class="floor-room ${cls}">
+      <div class="fnr">${r.nr}</div>
+      <div class="ftype">${ts}</div>
+      <div class="fbeds">${r.bed_count} B.</div>
+      <div class="tooltip">${tooltipContent}</div>
+    </div>`;
+  }
+  document.getElementById('floorGrid').innerHTML = html;
+}
+
+function renderRoomCards(filter = '') {
+  let html = '';
+  const f = filter.toLowerCase();
+
+  for (const r of allRooms) {
+    if (!r.type && r.bed_count === 0) continue;
+
+    // Filter
+    if (f) {
+      const rbs = r.resolvedBeds;
+      const match = rbs.some(b => b.label.toLowerCase().includes(f)) ||
+        r.nr.toString().includes(f) ||
+        (TYPE_LABELS[r.type] || '').toLowerCase().includes(f) ||
+        r.type.toLowerCase().includes(f);
+      if (!match) continue;
+    }
+
+    const rbs = r.resolvedBeds;
+    const allFree = rbs.every(b => b.status === 'free');
+    const allBlocked = rbs.every(b => b.status === 'blocked');
+    const hasOcc = rbs.some(b => b.status === 'occupied');
+    const hasFree = rbs.some(b => b.status === 'free');
+
+    let cardClass = 'free';
+    if (allBlocked) cardClass = 'blocked';
+    else if (hasOcc && hasFree) cardClass = 'partial';
+    else if (hasOcc) cardClass = 'occupied';
+
+    let bedHtml = '';
+    for (const rb of rbs) {
+      bedHtml += `<li class="${rb.status}">${rb.label}</li>`;
+    }
+
+    const tl = TYPE_LABELS[r.type] || r.type || '—';
+    html += `<div class="room-card ${cardClass}">
+      <div class="room-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="room-nr">${r.nr}</div>
+          <span class="room-type">${tl}</span>
+        </div>
+        <span class="room-price">${r.price}€</span>
+      </div>
+      <ul class="bed-list">${bedHtml}</ul>
+    </div>`;
+  }
+  document.getElementById('roomGrid').innerHTML = html;
+}
+
+function renderNameTable(filter = '') {
+  const tbody = document.querySelector('#nameTable tbody');
+  let html = '';
+  const f = filter.toLowerCase();
+
+  for (const n of nameMap) {
+    if (f && !n.name.toLowerCase().includes(f) && !n.room_nr.toString().includes(f)) continue;
+    html += `<tr>
+      <td style="font-weight:600">${n.name}</td>
+      <td><span class="room-badge">Zi. ${n.room_nr}</span></td>
+      <td style="color:#888">${n.room_type}</td>
+      <td style="color:#f0a500">${n.price > 0 ? n.price + '€' : '—'}</td>
+    </tr>`;
+  }
+  tbody.innerHTML = html;
+}
+
+function renderBookings() {
+  const active = allBookings.filter(b => !b.canceled);
+  let html = '';
+  for (const b of active) {
+    const statusClass = b.paid ? 'paid' : 'open';
+    const statusText = b.paid ? 'Bezahlt' : 'Offen';
+    html += `<tr>
+      <td>${b.id}</td>
+      <td style="font-weight:600">${b.people.join('<br>')}</td>
+      <td><span class="room-badge">Zi. ${b.room}</span></td>
+      <td>${b.city}</td>
+      <td><span class="badge ${statusClass}">${statusText}</span></td>
+      <td style="color:#f0a500;font-weight:600">${b.price}€</td>
+      <td style="color:#666;font-size:0.8em">${b.email}</td>
+    </tr>`;
+  }
+  document.getElementById('bookingBody').innerHTML = html;
+}
+
+function renderAll() {
+  processData();
+  renderStats();
+  renderTypeBars();
+  renderFloorPlan();
+  renderRoomCards();
+  renderNameTable();
+  renderBookings();
+}
+
+// ===== NAVIGATION =====
+function showView(id, btn) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+// ===== LOAD DATA =====
+async function loadData() {
+  const loading = document.getElementById('loadingIndicator');
+  const error = document.getElementById('errorIndicator');
+  loading.style.display = 'block';
+  error.style.display = 'none';
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+
+  try {
+    const [roomsTable, bookingsTable] = await Promise.all([
+      fetchSheet('Rooms'),
+      fetchSheet('Bookings')
+    ]);
+
+    allRooms = parseRooms(roomsTable);
+    allBookings = parseBookings(bookingsTable);
+
+    loading.style.display = 'none';
+    renderAll();
+    document.getElementById('dashboard').classList.add('active');
+
+    const now = new Date();
+    document.getElementById('lastUpdate').textContent =
+      `Zuletzt aktualisiert: ${now.toLocaleDateString('de-DE')} ${now.toLocaleTimeString('de-DE')}`;
+
+  } catch (err) {
+    loading.style.display = 'none';
+    error.style.display = 'block';
+    error.innerHTML = `<h3>Fehler beim Laden</h3>
+      <p style="margin-top:10px;color:#888">${err.message}</p>
+      <p style="margin-top:15px;color:#666;font-size:0.85em">
+        Stelle sicher, dass das Google Sheet für "Jeder mit dem Link" freigegeben ist.<br>
+        <a href="https://docs.google.com/spreadsheets/d/${SHEET_ID}" target="_blank" style="color:#6c9bff">Sheet öffnen</a>
+      </p>
+      <button onclick="loadData()" style="margin-top:15px;padding:10px 20px;background:#e94560;color:#fff;border:none;border-radius:8px;cursor:pointer;">Erneut versuchen</button>`;
+  }
+}
+
+// ===== INIT =====
+// Wait for Google Visualization API to load, then fetch data
+google.charts.load('current');
+google.charts.setOnLoadCallback(() => {
+  loadData();
+});
+</script>
+</body>
+</html>
