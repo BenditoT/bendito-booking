@@ -358,7 +358,7 @@ function parseBookings(table) {
     const id = parseCell(cells[0]);
     if (id === null) continue;
     const status = parseCell(cells[1]) || '';
-    const paid = !!parseCell(cells[3]);
+    const paid = !!parseCell(cells[3]) || String(parseCell(cells[1])).toLowerCase() === 'paid';
     const paydate = parseCell(cells[4]) || '';
     const firstnamesRaw = parseCell(cells[5]) || '';
     const lastnamesRaw = parseCell(cells[7]) || '';
@@ -463,8 +463,7 @@ function renderStats() {
     <div class="stat-card blue"><div class="number">${active.length}</div><div class="label">Buchungen</div></div>
     <div class="stat-card green"><div class="number">${paidB.length}</div><div class="label">Bezahlt</div></div>
     <div class="stat-card orange"><div class="number">${openB.length}</div><div class="label">Offen</div></div>
-    <div class="stat-card blue"><div class="number">${totalRev.toFixed(0)}&euro;</div><div class="label">Umsatz gesamt</div></div>
-    <div class="stat-card green"><div class="number">${paidRev.toFixed(0)}&euro;</div><div class="label">Davon bezahlt</div></div>`;
+    <div class="stat-card green"><div class="number">${paidRev.toFixed(0)}&euro;</div><div class="label">Eingegangen</div><div style="font-size:0.7em;color:#999;margin-top:4px">von ${totalRev.toFixed(0)}&euro; gesamt</div></div>`;
 }
 
 function renderTypeBars() {
