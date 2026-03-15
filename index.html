@@ -679,7 +679,7 @@ google.charts.setOnLoadCallback(() => { if (sessionStorage.getItem('btm_auth') =
 
 <script>
 // ===== PASSWORD GATE =====
-const HASH = '6f0db97b23b05d39add2aba117c0f62236b2e42e1dec16a57229c68e159fd3e4'; // SHA-256 of 'btm'
+const HASH = '809e714185eed9ba3f057f53374058d57474a0a066d798986f2cd5abffee76ef'; // SHA-256 of 'btm'
 async function sha256(str) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
